@@ -32,3 +32,16 @@ func (s *UserProfileService) Create(ctx context.Context, profile *models.UserPro
 func (s *UserProfileService) GetByUserID(ctx context.Context, userID string) (*models.UserProfile, error) {
 	return s.Repo.GetByUserID(userID)
 }
+
+func (s *UserProfileService) GetAll(ctx context.Context) ([]*models.UserProfile, error) {
+	return s.Repo.GetAll()
+}
+
+func (s *UserProfileService) Update(ctx context.Context, userID string, updated *models.UserProfile) (*models.UserProfile, error) {
+	updated.UpdatedAt = time.Now()
+	return s.Repo.Update(userID, updated)
+}
+
+func (s *UserProfileService) Delete(ctx context.Context, userID string) error {
+	return s.Repo.Delete(userID)
+}

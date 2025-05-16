@@ -7,15 +7,16 @@ import (
 )
 
 type UserProfile struct {
-	ID                  uuid.UUID `json:"id"`
-	UserID              uuid.UUID `json:"user_id"`
-	FullName            string    `json:"full_name"`
-	Designation         string    `json:"designation"`
-	Organization        string    `json:"organization"`
-	ProfessionalSummary string    `json:"professional_summary"`
-	Location            string    `json:"location"`
-	Email               string    `json:"email"`
-	ContactNumber       string    `json:"contact_number"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
+	ID                  uuid.UUID
+	UserID              uuid.UUID
+	ProfileImage        *string // nullable
+	FullName            string  // required
+	Designation         *string // nullable
+	Organization        *string // nullable
+	ProfessionalSummary *string // nullable
+	Location            *string // nullable
+	Email               string  // required
+	ContactNumber       *string // nullable
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }

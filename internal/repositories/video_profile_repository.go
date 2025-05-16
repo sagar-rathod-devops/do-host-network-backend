@@ -41,3 +41,19 @@ func (r *VideoProfileRepository) GetByUserID(userID uuid.UUID) ([]*models.VideoP
 	}
 	return profiles, nil
 }
+
+func (r *VideoProfileRepository) Update(video *models.VideoProfile) error {
+	query := `
+        UPDATE video_profile
+        SET video_url = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING updated_at
+    `
+	return r.DB.QueryRow(query, video.VideoURL, video.ID).Scan(&video.UpdatedAt)
+}
+
+func (r *VideoProfileRepository) Delete(videoID uuid.UUID) error {
+	query := `DELETE FROM video_profile WHERE id = $1`
+	_, err := r.DB.Exec(query, videoID)
+	return err
+}

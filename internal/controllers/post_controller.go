@@ -2,13 +2,17 @@ package controllers
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sagar-rathod-devops/do-host-network-backend/config"
 	"github.com/sagar-rathod-devops/do-host-network-backend/internal/models"
 	"github.com/sagar-rathod-devops/do-host-network-backend/internal/services"
+	"github.com/sagar-rathod-devops/do-host-network-backend/utils"
 )
 
 type PostController struct {
@@ -16,45 +20,98 @@ type PostController struct {
 }
 
 func NewPostController(service *services.PostService) *PostController {
-	return &PostController{PostService: service}
+	return &PostController{
+		PostService: service,
+	}
 }
 
 func (pc *PostController) CreatePost(ctx *gin.Context) {
-	var input struct {
-		UserID      string `json:"user_id" binding:"required"`
-		PostContent string `json:"post_content" binding:"required"`
-		MediaURL    string `json:"media_url"`
-	}
+	fmt.Println("🚀 Received request to create post")
 
-	// Bind the request body to the input struct
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+	// 1. Parse form-data fields
+	userIDStr := ctx.PostForm("user_id")
+	postContent := ctx.PostForm("post_content")
+
+	if strings.TrimSpace(userIDStr) == "" || strings.TrimSpace(postContent) == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user_id and post_content are required"})
 		return
 	}
 
-	// Convert the UserID to UUID
-	userID, err := uuid.Parse(input.UserID)
+	// 2. Parse user ID to UUID
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UserID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id format"})
 		return
 	}
 
-	// Create the post object
+	// 3. Get uploaded media file (optional)
+	fileHeader, err := ctx.FormFile("media_url")
+	mediaURL := "" // string, default empty
+
+	if err == nil && fileHeader != nil {
+		file, err := fileHeader.Open()
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open media file"})
+			return
+		}
+		defer file.Close()
+
+		fmt.Println("📁 Media file received:", fileHeader.Filename)
+
+		// 4. Load config & initialize uploader
+		cfg, err := config.LoadConfig(".")
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load config"})
+			return
+		}
+
+		uploader, err := utils.NewS3Uploader(cfg)
+		if err != nil || uploader == nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize S3 uploader"})
+			return
+		}
+
+		// 5. Generate S3 key and upload
+		key := fmt.Sprintf("post-media/%s_%d_%s", userID, time.Now().Unix(), fileHeader.Filename)
+		url, err := uploader.UploadFile(file, fileHeader, key)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload media to S3"})
+			return
+		}
+
+		fmt.Println("✅ Media uploaded successfully:", url)
+		mediaURL = url // assign string directly
+	} else {
+		fmt.Println("⚠️ No media uploaded or error reading media:", err)
+	}
+
+	// 6. Create post model
 	post := &models.ContentPost{
 		UserID:      userID,
-		PostContent: input.PostContent,
-		MediaURL:    input.MediaURL,
+		PostContent: strings.TrimSpace(postContent),
+		MediaURL:    mediaURL, // string, no pointer
 	}
 
-	// Call the service to create the post
-	if _, err := pc.PostService.CreatePost(context.Background(), post); err != nil {
-		log.Printf("CreatePost error: %v", err)
+	// 7. Save post to DB
+	createdPost, err := pc.PostService.CreatePost(context.Background(), post)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post"})
 		return
 	}
 
-	// Return only a success message
-	ctx.JSON(http.StatusCreated, gin.H{"message": "Post created successfully"})
+	// 8. Prepare response
+	if createdPost.MediaURL != "" {
+		ctx.JSON(http.StatusCreated, gin.H{
+			"message":      "Post created successfully",
+			"post_content": createdPost.PostContent,
+			"media_url":    createdPost.MediaURL,
+		})
+	} else {
+		ctx.JSON(http.StatusCreated, gin.H{
+			"message":      "Post created successfully",
+			"post_content": createdPost.PostContent,
+		})
+	}
 }
 
 func (c *PostController) GetAllContentPosts(ctx *gin.Context) {

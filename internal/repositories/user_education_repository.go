@@ -59,3 +59,28 @@ func (r *UserEducationRepository) GetByUserID(userID uuid.UUID) ([]*models.UserE
 
 	return educations, nil
 }
+
+func (r *UserEducationRepository) Update(edu *models.UserEducation) error {
+	query := `
+        UPDATE user_education
+        SET degree = $1,
+            institution_name = $2,
+            field_of_study = $3,
+            grade = $4,
+            year = $5,
+            updated_at = NOW()
+        WHERE id = $6
+    `
+	_, err := r.DB.Exec(
+		query,
+		edu.Degree, edu.InstitutionName, edu.FieldOfStudy,
+		edu.Grade, edu.Year, edu.ID,
+	)
+	return err
+}
+
+func (r *UserEducationRepository) Delete(eduID uuid.UUID) error {
+	query := `DELETE FROM user_education WHERE id = $1`
+	_, err := r.DB.Exec(query, eduID)
+	return err
+}

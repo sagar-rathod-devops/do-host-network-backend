@@ -30,6 +30,11 @@ type Config struct {
 	SMTPPass  string `mapstructure:"SMTP_PASS"`
 	SMTPPort  int    `mapstructure:"SMTP_PORT"`
 	SMTPUser  string `mapstructure:"SMTP_USER"`
+
+	AWS_ACCESS_KEY_ID     string `mapstructure:"AWS_ACCESS_KEY_ID"`
+	AWS_SECRET_ACCESS_KEY string `mapstructure:"AWS_SECRET_ACCESS_KEY"`
+	AWS_REGION            string `mapstructure:"AWS_REGION"`
+	AWS_BUCKET_NAME       string `mapstructure:"AWS_BUCKET_NAME"`
 }
 
 func LoadConfig(path string) (Config, error) {

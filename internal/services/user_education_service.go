@@ -19,3 +19,11 @@ func (s *UserEducationService) Create(ctx context.Context, edu *models.UserEduca
 func (s *UserEducationService) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.UserEducation, error) {
 	return s.Repo.GetByUserID(userID)
 }
+
+func (s *UserEducationService) Update(ctx context.Context, edu *models.UserEducation) error {
+	return s.Repo.Update(edu)
+}
+
+func (s *UserEducationService) Delete(ctx context.Context, eduID uuid.UUID) error {
+	return s.Repo.Delete(eduID)
+}

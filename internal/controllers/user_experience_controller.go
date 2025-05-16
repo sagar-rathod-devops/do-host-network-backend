@@ -62,3 +62,42 @@ func (c *UserExperienceController) GetByUserID(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, experiences)
 }
+
+// PUT /api/experience/:id
+func (c *UserExperienceController) Update(ctx *gin.Context) {
+	experienceID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid experience ID"})
+		return
+	}
+
+	var input models.UserExperience
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+		return
+	}
+
+	input.ID = experienceID
+	if err := c.UserExperienceService.Update(context.Background(), &input); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user experience", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "User experience updated successfully"})
+}
+
+// DELETE /api/experience/:id
+func (c *UserExperienceController) Delete(ctx *gin.Context) {
+	experienceID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid experience ID"})
+		return
+	}
+
+	if err := c.UserExperienceService.Delete(context.Background(), experienceID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user experience", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "User experience deleted successfully"})
+}

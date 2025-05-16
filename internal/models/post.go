@@ -27,3 +27,15 @@ type JobPost struct {
 	LastDateToApply time.Time `json:"last_date_to_apply"`
 	CreatedAt       time.Time `json:"created_at"`
 }
+
+type PostWithDetails struct {
+	PostID        uuid.UUID `json:"post_id"`
+	UserID        uuid.UUID `json:"user_id"`
+	ProfileImage  string    `json:"profile_image"`
+	FullName      string    `json:"full_name"`
+	Designation   string    `json:"designation"`
+	PostContent   string    `json:"post_content"`
+	MediaURL      *string   `json:"media_url"`
+	TotalLikes    int       `json:"total_likes"`
+	TotalComments int       `json:"total_comments"`
+}

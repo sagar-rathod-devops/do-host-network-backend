@@ -64,3 +64,31 @@ func (r *UserExperienceRepository) GetByUserID(ctx context.Context, userID uuid.
 
 	return experiences, nil
 }
+
+func (r *UserExperienceRepository) Update(ctx context.Context, exp *models.UserExperience) error {
+	query := `
+		UPDATE user_experience SET
+			job_title = $1,
+			company_name = $2,
+			location = $3,
+			job_description = $4,
+			achievements = $5,
+			start_date = $6,
+			end_date = $7,
+			updated_at = NOW()
+		WHERE id = $8
+	`
+	_, err := r.DB.ExecContext(ctx, query,
+		exp.JobTitle, exp.CompanyName, exp.Location,
+		exp.JobDescription, exp.Achievements,
+		exp.StartDate, exp.EndDate,
+		exp.ID,
+	)
+	return err
+}
+
+func (r *UserExperienceRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM user_experience WHERE id = $1`
+	_, err := r.DB.ExecContext(ctx, query, id)
+	return err
+}

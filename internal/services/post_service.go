@@ -25,8 +25,8 @@ func (s *PostService) CreatePost(ctx context.Context, p *models.ContentPost) (*m
 	return createdPost, nil
 }
 
-func (s *PostService) GetAllContentPosts(ctx context.Context) ([]models.ContentPost, error) {
-	return s.Repo.GetAll(ctx)
+func (s *PostService) GetAllContentPosts(ctx context.Context) ([]models.PostWithDetails, error) {
+	return s.Repo.GetAllWithDetails(ctx)
 }
 
 func (s *PostService) GetPostsByUserID(userID uuid.UUID) ([]models.ContentPost, error) {

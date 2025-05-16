@@ -72,3 +72,59 @@ func (c *UserEducationController) GetByUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, educations)
 }
+
+// PUT /api/education/:id
+func (c *UserEducationController) Update(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	eduID, err := uuid.Parse(idStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid education ID"})
+		return
+	}
+
+	var input struct {
+		Degree          string `json:"degree"`
+		InstitutionName string `json:"institution_name"`
+		FieldOfStudy    string `json:"field_of_study"`
+		Grade           string `json:"grade"`
+		Year            string `json:"year"`
+	}
+
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+		return
+	}
+
+	updatedEdu := &models.UserEducation{
+		ID:              eduID,
+		Degree:          input.Degree,
+		InstitutionName: input.InstitutionName,
+		FieldOfStudy:    input.FieldOfStudy,
+		Grade:           input.Grade,
+		Year:            input.Year,
+	}
+
+	if err := c.Service.Update(context.Background(), updatedEdu); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update education", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "User education updated successfully"})
+}
+
+// DELETE /api/education/:id
+func (c *UserEducationController) Delete(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	eduID, err := uuid.Parse(idStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid education ID"})
+		return
+	}
+
+	if err := c.Service.Delete(context.Background(), eduID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete education", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "User education deleted successfully"})
+}

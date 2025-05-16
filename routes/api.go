@@ -75,6 +75,10 @@ func SetupServer() *gin.Engine {
 	postCommentController := controllers.PostCommentController{PostCommentService: &postCommentService}             // pointer matches PostCommentController.Service
 	followController := controllers.FollowController{FollowService: &followService}                                 // pointer matches FollowController.Service
 	notificationController := controllers.NotificationController{NotificationService: &notificationService}         // pointer matches NotificationController.Service
+	uploadController, err := controllers.NewUploadController(cfg)
+	if err != nil {
+		log.Fatalf("Failed to create upload controller: %v", err)
+	}
 
 	// Set up Gin router
 	router := gin.Default()
@@ -112,12 +116,24 @@ func SetupServer() *gin.Engine {
 	{
 		userGroup.POST("/profile", userProfileController.Create)
 		userGroup.GET("/profile/:user_id", userProfileController.GetByUserID)
-		userGroup.POST("/video", videoProfileController.CreateVideoProfile)
+		userGroup.GET("/profile", userProfileController.GetAll)
+		userGroup.POST("/profile/update/:user_id", userProfileController.Update)
+		userGroup.POST("/profile/delete/:user_id", userProfileController.Delete)
+		userGroup.POST("/video", videoProfileController.UploadVideo)
 		userGroup.GET("/video/:user_id", videoProfileController.GetVideoProfilesByUser)
+		userGroup.PUT("/video/:id", videoProfileController.UpdateVideo)    // New
+		userGroup.DELETE("/video/:id", videoProfileController.DeleteVideo) // New
+		userGroup.GET("/stream", videoProfileController.StreamVideo)
+		userGroup.POST("/upload", uploadController.UploadFile)
 		userGroup.POST("/education", educationController.Create)
 		userGroup.GET("/education/:user_id", educationController.GetByUser)
+		userGroup.PUT("/education/:id", educationController.Update)
+		userGroup.DELETE("/education/:id", educationController.Delete)
 		userGroup.POST("/experience", userExperienceController.Create)
 		userGroup.GET("/experience/:user_id", userExperienceController.GetByUserID)
+		userGroup.PUT("/experience/:id", userExperienceController.Update)
+		userGroup.DELETE("/experience/:id", userExperienceController.Delete)
+
 	}
 
 	likeGroup := router.Group("/post")

@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS job_post (
 CREATE TABLE IF NOT EXISTS user_profile (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),           -- Auto-generated UUID
     user_id UUID NOT NULL,                                    -- Reference to the user
+    profile_image TEXT,                                       --Profile Image
     full_name VARCHAR(255) NOT NULL,                          -- Full name of the user
     designation VARCHAR(255),                                 -- Designation (e.g., Backend Engineer)
     organization VARCHAR(255),                                -- Organization name (e.g., TechStars)

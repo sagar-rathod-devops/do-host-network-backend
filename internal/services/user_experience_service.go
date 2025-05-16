@@ -25,3 +25,11 @@ func (s *UserExperienceService) GetByUserID(ctx context.Context, userID uuid.UUI
 	// Fetch user experiences by user ID from the repository
 	return s.UserExperienceRepository.GetByUserID(ctx, userID)
 }
+
+func (s *UserExperienceService) Update(ctx context.Context, exp *models.UserExperience) error {
+	return s.UserExperienceRepository.Update(ctx, exp)
+}
+
+func (s *UserExperienceService) Delete(ctx context.Context, id uuid.UUID) error {
+	return s.UserExperienceRepository.Delete(ctx, id)
+}
