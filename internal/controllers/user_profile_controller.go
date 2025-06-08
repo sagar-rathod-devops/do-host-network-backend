@@ -167,15 +167,67 @@ func (ctrl *UserProfileController) GetAll(ctx *gin.Context) {
 }
 
 func (ctrl *UserProfileController) Update(ctx *gin.Context) {
-	userID := ctx.Param("user_id")
-
-	var input models.UserProfile
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// Parse user_id as UUID
+	userIDStr := ctx.Param("user_id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
 		return
 	}
 
-	updatedProfile, err := ctrl.UserProfileService.Update(context.Background(), userID, &input)
+	// Parse multipart form (max 10 MB)
+	if err := ctx.Request.ParseMultipartForm(10 << 20); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form", "details": err.Error()})
+		return
+	}
+
+	// Prepare the updated profile struct
+	updated := &models.UserProfile{
+		UserID:              userID,
+		FullName:            ctx.PostForm("full_name"),
+		Designation:         stringPtr(ctx.PostForm("designation")),
+		Organization:        stringPtr(ctx.PostForm("organization")),
+		ProfessionalSummary: stringPtr(ctx.PostForm("professional_summary")),
+		Location:            stringPtr(ctx.PostForm("location")),
+		Email:               ctx.PostForm("email"),
+		ContactNumber:       stringPtr(ctx.PostForm("contact_number")),
+		UpdatedAt:           time.Now(),
+	}
+
+	// Handle profile_image upload
+	fileHeader, err := ctx.FormFile("profile_image")
+	if err == nil && fileHeader != nil {
+		file, err := fileHeader.Open()
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open uploaded image", "details": err.Error()})
+			return
+		}
+		defer file.Close()
+
+		// Ensure uploads directory exists
+		if err := os.MkdirAll("uploads", os.ModePerm); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory", "details": err.Error()})
+			return
+		}
+
+		filename := fmt.Sprintf("uploads/%s", filepath.Base(fileHeader.Filename))
+		out, err := os.Create(filename)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image", "details": err.Error()})
+			return
+		}
+		defer out.Close()
+
+		if _, err := io.Copy(out, file); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write image", "details": err.Error()})
+			return
+		}
+
+		updated.ProfileImage = stringPtr(filename)
+	}
+
+	// Call service to update the profile in DB
+	updatedProfile, err := ctrl.UserProfileService.Update(context.Background(), userID.String(), updated)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile", "details": err.Error()})
 		return
