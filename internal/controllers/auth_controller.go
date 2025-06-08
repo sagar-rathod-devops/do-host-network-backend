@@ -43,8 +43,8 @@ func (c *AuthController) Register(ctx *gin.Context) {
 // Login handles user login and returns a token and user ID.
 func (c *AuthController) Login(ctx *gin.Context) {
 	var payload struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
+		EmailOrUsername string `json:"emailOrUsername" binding:"required"` // accept either
+		Password        string `json:"password" binding:"required"`
 	}
 
 	// Bind JSON input
@@ -54,7 +54,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	}
 
 	// Call the service to log in the user and get a token and user ID
-	token, userID, err := c.AuthService.LoginUser(ctx, payload.Email, payload.Password)
+	token, userID, err := c.AuthService.LoginUser(ctx, payload.EmailOrUsername, payload.Password)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
