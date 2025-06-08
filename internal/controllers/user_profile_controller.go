@@ -194,7 +194,7 @@ func (ctrl *UserProfileController) Update(ctx *gin.Context) {
 		UpdatedAt:           time.Now(),
 	}
 
-	// Handle profile_image upload
+	// Handle profile_image upload to S3
 	fileHeader, err := ctx.FormFile("profile_image")
 	if err == nil && fileHeader != nil {
 		file, err := fileHeader.Open()
@@ -204,26 +204,28 @@ func (ctrl *UserProfileController) Update(ctx *gin.Context) {
 		}
 		defer file.Close()
 
-		// Ensure uploads directory exists
-		if err := os.MkdirAll("uploads", os.ModePerm); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory", "details": err.Error()})
-			return
-		}
-
-		filename := fmt.Sprintf("uploads/%s", filepath.Base(fileHeader.Filename))
-		out, err := os.Create(filename)
+		// Load config and initialize uploader
+		cfg, err := config.LoadConfig(".")
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image", "details": err.Error()})
-			return
-		}
-		defer out.Close()
-
-		if _, err := io.Copy(out, file); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write image", "details": err.Error()})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load config", "details": err.Error()})
 			return
 		}
 
-		updated.ProfileImage = stringPtr(filename)
+		uploader, err := utils.NewS3Uploader(cfg)
+		if err != nil || uploader == nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create S3 uploader", "details": err.Error()})
+			return
+		}
+
+		// Upload file to S3
+		key := fmt.Sprintf("profile-images/%s_%d_%s", userID.String(), time.Now().Unix(), fileHeader.Filename)
+		url, err := uploader.UploadFile(file, fileHeader, key)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image to S3", "details": err.Error()})
+			return
+		}
+
+		updated.ProfileImage = &url
 	}
 
 	// Call service to update the profile in DB
