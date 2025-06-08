@@ -22,9 +22,9 @@ func (r *UserRepository) CreateUser(ctx context.Context, user models.User) error
 }
 
 // GetUserByEmail retrieves a user by email
-func (r *UserRepository) GetUserByEmailOrUsername(email string) (*models.User, error) {
-	query := `SELECT id, email, username, password_hash, created_at, updated_at FROM users WHERE email = $1 or username = $1`
-	row := r.DB.QueryRow(query, email)
+func (r *UserRepository) GetUserByEmailOrUsername(identifier string) (*models.User, error) {
+	query := `SELECT id, email, username, password_hash, created_at, updated_at FROM users WHERE email = $1 OR username = $1`
+	row := r.DB.QueryRow(query, identifier)
 	var user models.User
 	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
