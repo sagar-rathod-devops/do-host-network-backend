@@ -117,8 +117,8 @@ func SetupServer() *gin.Engine {
 		userGroup.POST("/profile", userProfileController.Create)
 		userGroup.GET("/profile/:user_id", userProfileController.GetByUserID)
 		userGroup.GET("/profile", userProfileController.GetAll)
-		userGroup.POST("/profile/update/:user_id", userProfileController.Update)
-		userGroup.POST("/profile/delete/:user_id", userProfileController.Delete)
+		userGroup.PUT("/profile/update/:user_id", userProfileController.Update)
+		userGroup.DELETE("/profile/delete/:user_id", userProfileController.Delete)
 		userGroup.POST("/video", videoProfileController.UploadVideo)
 		userGroup.GET("/video/:user_id", videoProfileController.GetVideoProfilesByUser)
 		userGroup.PUT("/video/:id", videoProfileController.UpdateVideo)    // New
