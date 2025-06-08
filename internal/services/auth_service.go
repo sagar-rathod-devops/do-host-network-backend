@@ -90,29 +90,26 @@ The Do Host Network Team`, otp)
 	return nil
 }
 
-// LoginUser handles user login and token generation (pure business logic)
-func (s *AuthService) LoginUser(ctx context.Context, email, password string) (string, string, error) {
+func (s *AuthService) LoginUser(ctx context.Context, identifier, password string) (string, string, error) {
 	// Step 1: Check if OTP is verified
-	otpRecord, err := s.OTPRepository.GetOTPByEmail(ctx, email)
+	otpRecord, err := s.OTPRepository.GetOTPByEmail(ctx, identifier)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to verify OTP: %w", err)
+		// Not fatal: if identifier is a username, it won't have OTP verification
+		otpRecord = nil
 	}
-	if !otpRecord.IsVerified {
+	if otpRecord != nil && !otpRecord.IsVerified {
 		return "", "", errors.New("email not verified. Please verify your email before logging in")
 	}
 
-	// Step 2: Fetch user details from repository
-	user, err := s.UserRepository.GetUserByEmailOrUsername(email)
+	// Step 2: Fetch user details from repository using email or username
+	user, err := s.UserRepository.GetUserByEmailOrUsername(identifier)
 	if err != nil {
-		if err.Error() == "user not found" {
-			return "", "", errors.New("invalid email or password")
-		}
-		return "", "", err
+		return "", "", errors.New("invalid email/username or password")
 	}
 
 	// Step 3: Compare hashed password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", "", errors.New("invalid email or password")
+		return "", "", errors.New("invalid email/username or password")
 	}
 
 	// Step 4: Load config and generate JWT
