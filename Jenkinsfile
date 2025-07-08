@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        label 'linux' // Ensure this is a Linux Jenkins agent
-    }
+    agent any
 
     environment {
         AWS_REGION = 'ap-south-1'
