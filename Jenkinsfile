@@ -6,7 +6,7 @@ pipeline {
         IMAGE_NAME = 'do-host-network-backend'
         ACCOUNT_ID = '248189939111'
         ECR_REPO = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
-        EC2_HOST = 'ubuntu@your-ec2-public-ip' // use 'ubuntu' for Ubuntu AMIs
+        EC2_HOST = 'ubuntu@54.235.0.39' // use 'ubuntu' for Ubuntu AMIs
         SSH_KEY = 'ec2-ssh-key' // Jenkins credential ID (.pem key for EC2)
     }
 
