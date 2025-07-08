@@ -1,13 +1,15 @@
 pipeline {
-    agent any
+    agent {
+        label 'linux' // Ensure this is a Linux Jenkins agent
+    }
 
     environment {
         AWS_REGION = 'ap-south-1'
         IMAGE_NAME = 'do-host-network-backend'
         ACCOUNT_ID = '248189939111'
         ECR_REPO = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
-        EC2_HOST = 'ubuntu@54.235.0.39' // use 'ubuntu' for Ubuntu AMIs
-        SSH_KEY = 'ec2-ssh-key' // Jenkins credential ID (.pem key for EC2)
+        EC2_HOST = 'ubuntu@54.235.0.39' // Replace with your EC2 Public IP
+        SSH_KEY = 'ec2-ssh-key' // Jenkins credential ID for .pem SSH key
     }
 
     stages {
@@ -32,7 +34,7 @@ pipeline {
 
         stage('Login to ECR') {
             steps {
-                withAWS(credentials: 'aws-ecr-creds', region: "${AWS_REGION}") {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-ecr-creds']]) {
                     sh '''
                         aws ecr get-login-password --region $AWS_REGION | \
                         docker login --username AWS --password-stdin $ECR_REPO
@@ -52,20 +54,19 @@ pipeline {
 
         stage('Deploy on Ubuntu EC2') {
             steps {
-                sshagent (credentials: ['ec2-ssh-key']) {
+                sshagent (credentials: [SSH_KEY]) {
                     sh """
-                    ssh -o StrictHostKeyChecking=no $EC2_HOST << 'EOF'
-                        sudo apt update -y
-                        sudo apt install -y docker.io awscli
-                        sudo usermod -aG docker ubuntu
-                        newgrp docker <<EONG
+                        ssh -o StrictHostKeyChecking=no $EC2_HOST << EOF
+                            sudo apt update -y
+                            sudo apt install -y docker.io awscli
+                            sudo systemctl enable docker
+                            sudo systemctl start docker
                             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-                            docker pull $ECR_REPO:latest
                             docker stop $IMAGE_NAME || true
                             docker rm $IMAGE_NAME || true
+                            docker pull $ECR_REPO:latest
                             docker run -d --name $IMAGE_NAME -p 8000:8000 $ECR_REPO:latest
-                        EONG
-                    EOF
+                        EOF
                     """
                 }
             }
@@ -74,10 +75,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Image pushed to ECR and deployed on Ubuntu EC2 (port 8000).'
+            echo '✅ Deployment to EC2 on port 8000 completed successfully.'
         }
         failure {
-            echo '❌ Pipeline failed.'
+            echo '❌ Pipeline failed. Check logs.'
         }
     }
 }
