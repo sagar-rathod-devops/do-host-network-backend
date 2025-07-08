@@ -1,23 +1,21 @@
-# 1. Use official Golang image as base
-FROM golang:1.21-alpine
+# Use official Go 1.23 image
+FROM golang:1.23.0-alpine
 
-# 2. Set the Current Working Directory inside the container
+# Set working directory
 WORKDIR /app
 
-# 3. Copy go.mod and go.sum files
+# Copy module files and download dependencies
 COPY go.mod go.sum ./
-
-# 4. Download all Go modules
 RUN go mod download
 
-# 5. Copy the source code
+# Copy the rest of the code
 COPY . .
 
-# 6. Build the Go app
+# Build the Go application
 RUN go build -o main .
 
-# 7. Expose port (change this if needed)
+# Expose app port
 EXPOSE 8000
 
-# 8. Command to run the executable
+# Run the built binary
 CMD ["./main"]
