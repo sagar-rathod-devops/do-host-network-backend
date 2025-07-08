@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'ap-south-1'
-        IMAGE_NAME = 'do-host-network-backend'
+        AWS_REGION = 'us-east-1' // Updated region
+        IMAGE_NAME = 'user-api-devops' // Updated image name
         ACCOUNT_ID = '248189939111'
         ECR_REPO = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
         EC2_HOST = 'ubuntu@54.235.0.39' // Replace with your EC2 Public IP
@@ -26,7 +26,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat 'docker build -t $IMAGE_NAME .'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
@@ -34,8 +34,7 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-ecr-creds']]) {
                     bat '''
-                        aws ecr get-login-password --region $AWS_REGION | \
-                        docker login --username AWS --password-stdin $ECR_REPO
+                        aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REPO%
                     '''
                 }
             }
@@ -44,8 +43,8 @@ pipeline {
         stage('Tag & Push to ECR') {
             steps {
                 bat '''
-                    docker tag $IMAGE_NAME:latest $ECR_REPO:latest
-                    docker push $ECR_REPO:latest
+                    docker tag %IMAGE_NAME%:latest %ECR_REPO%:latest
+                    docker push %ECR_REPO%:latest
                 '''
             }
         }
@@ -54,16 +53,16 @@ pipeline {
             steps {
                 sshagent (credentials: [SSH_KEY]) {
                     bat """
-                        ssh -o StrictHostKeyChecking=no $EC2_HOST << EOF
+                        ssh -o StrictHostKeyChecking=no %EC2_HOST% << EOF
                             sudo apt update -y
                             sudo apt install -y docker.io awscli
                             sudo systemctl enable docker
                             sudo systemctl start docker
-                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-                            docker stop $IMAGE_NAME || true
-                            docker rm $IMAGE_NAME || true
-                            docker pull $ECR_REPO:latest
-                            docker run -d --name $IMAGE_NAME -p 8000:8000 $ECR_REPO:latest
+                            aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REPO%
+                            docker stop %IMAGE_NAME% || true
+                            docker rm %IMAGE_NAME% || true
+                            docker pull %ECR_REPO%:latest
+                            docker run -d --name %IMAGE_NAME% -p 8000:8000 %ECR_REPO%:latest
                         EOF
                     """
                 }
