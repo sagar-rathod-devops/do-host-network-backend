@@ -19,21 +19,21 @@ pipeline {
 
         stage('Build Go App') {
             steps {
-                sh 'go mod tidy'
-                sh 'go build -o main .'
+                bat 'go mod tidy'
+                bat 'go build -o main .'
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                bat 'docker build -t $IMAGE_NAME .'
             }
         }
 
         stage('Login to ECR') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-ecr-creds']]) {
-                    sh '''
+                    bat '''
                         aws ecr get-login-password --region $AWS_REGION | \
                         docker login --username AWS --password-stdin $ECR_REPO
                     '''
@@ -43,7 +43,7 @@ pipeline {
 
         stage('Tag & Push to ECR') {
             steps {
-                sh '''
+                bat '''
                     docker tag $IMAGE_NAME:latest $ECR_REPO:latest
                     docker push $ECR_REPO:latest
                 '''
@@ -53,7 +53,7 @@ pipeline {
         stage('Deploy on Ubuntu EC2') {
             steps {
                 sshagent (credentials: [SSH_KEY]) {
-                    sh """
+                    bat """
                         ssh -o StrictHostKeyChecking=no $EC2_HOST << EOF
                             sudo apt update -y
                             sudo apt install -y docker.io awscli
