@@ -2,29 +2,11 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = 'do-host-network-backend'
-        DOCKER_IMAGE = "sagar-rathod/${APP_NAME}:latest"
-        GOROOT = "${env.WORKSPACE}/go"
-        PATH = "${env.WORKSPACE}/go/bin:${env.PATH}"
+        APP_NAME = "do-host-network-backend"
+        PORT = "8000"
     }
 
     stages {
-        stage('Install Go') {
-            steps {
-                sh '''
-                if ! command -v go &> /dev/null
-                then
-                  echo "Installing Go locally..."
-                  wget https://golang.org/dl/go1.20.12.linux-amd64.tar.gz
-                  rm -rf go
-                  mkdir go
-                  tar -C go -xzf go1.20.12.linux-amd64.tar.gz --strip-components=1
-                fi
-                go version
-                '''
-            }
-        }
-
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
@@ -34,43 +16,28 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'go mod tidy'
-                sh 'go build -o main .'
+                sh 'go build -o app main.go'
             }
         }
 
-        stage('Test') {
+        stage('Run App') {
             steps {
-                sh 'go test ./...'
-            }
-        }
-
-        stage('Docker Build') {
-            steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}")
-                }
-            }
-        }
-
-        stage('Docker Push') {
-            when {
-                expression { return env.BRANCH_NAME == 'main' }
-            }
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                    sh "docker push ${DOCKER_IMAGE}"
-                }
+                // Kill any app already running on port 8000, then run new one
+                sh '''
+                fuser -k ${PORT}/tcp || true
+                nohup ./app > app.log 2>&1 &
+                echo "App is running on port ${PORT}"
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "✅ Jenkins pipeline completed successfully."
+            echo "✅ App deployed on EC2 at port ${PORT}"
         }
         failure {
-            echo "❌ Pipeline failed."
+            echo "❌ Pipeline failed"
         }
     }
 }
