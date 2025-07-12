@@ -4,34 +4,32 @@ pipeline {
     environment {
         APP_NAME = 'do-host-network-backend'
         DOCKER_IMAGE = "sagar-rathod/${APP_NAME}:latest"
+        GOROOT = "${env.WORKSPACE}/go"
+        PATH = "${env.WORKSPACE}/go/bin:${env.PATH}"
     }
 
     stages {
-
         stage('Install Go') {
-    steps {
-        sh '''
-        if ! command -v go &> /dev/null
-        then
-          echo "Installing Go locally..."
-          wget https://golang.org/dl/go1.20.12.linux-amd64.tar.gz
-          rm -rf go
-          mkdir go
-          tar -C go -xzf go1.20.12.linux-amd64.tar.gz --strip-components=1
-          export PATH=$PATH:$(pwd)/go/bin
-        fi
-        go version
-        '''
-    }
-}
-
+            steps {
+                sh '''
+                if ! command -v go &> /dev/null
+                then
+                  echo "Installing Go locally..."
+                  wget https://golang.org/dl/go1.20.12.linux-amd64.tar.gz
+                  rm -rf go
+                  mkdir go
+                  tar -C go -xzf go1.20.12.linux-amd64.tar.gz --strip-components=1
+                fi
+                go version
+                '''
+            }
+        }
 
         stage('Checkout') {
-    steps {
-        git branch: 'main', url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
-    }
-}
-
+            steps {
+                git branch: 'main', url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
+            }
+        }
 
         stage('Build') {
             steps {
