@@ -8,22 +8,23 @@ pipeline {
 
     stages {
 
-        stage('Install Go (if needed)') {
-            steps {
-                sh '''
-                if ! command -v go &> /dev/null
-                then
-                  echo "Installing Go..."
-                  wget https://golang.org/dl/go1.20.12.linux-amd64.tar.gz
-                  sudo rm -rf /usr/local/go
-                  sudo tar -C /usr/local -xzf go1.20.12.linux-amd64.tar.gz
-                  echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc
-                  source ~/.bashrc
-                fi
-                go version
-                '''
-            }
-        }
+        stage('Install Go') {
+    steps {
+        sh '''
+        if ! command -v go &> /dev/null
+        then
+          echo "Installing Go locally..."
+          wget https://golang.org/dl/go1.20.12.linux-amd64.tar.gz
+          rm -rf go
+          mkdir go
+          tar -C go -xzf go1.20.12.linux-amd64.tar.gz --strip-components=1
+          export PATH=$PATH:$(pwd)/go/bin
+        fi
+        go version
+        '''
+    }
+}
+
 
         stage('Checkout') {
             steps {
