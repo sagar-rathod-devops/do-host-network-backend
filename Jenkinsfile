@@ -2,16 +2,28 @@ pipeline {
     agent any
 
     environment {
-        GO_VERSION = '1.20'
         APP_NAME = 'do-host-network-backend'
         DOCKER_IMAGE = "sagar-rathod/${APP_NAME}:latest"
     }
 
-    tools {
-        go "${GO_VERSION}"
-    }
-
     stages {
+
+        stage('Install Go (if needed)') {
+            steps {
+                sh '''
+                if ! command -v go &> /dev/null
+                then
+                  echo "Installing Go..."
+                  wget https://golang.org/dl/go1.20.12.linux-amd64.tar.gz
+                  sudo rm -rf /usr/local/go
+                  sudo tar -C /usr/local -xzf go1.20.12.linux-amd64.tar.gz
+                  echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc
+                  source ~/.bashrc
+                fi
+                go version
+                '''
+            }
+        }
 
         stage('Checkout') {
             steps {
