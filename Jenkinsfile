@@ -27,10 +27,11 @@ pipeline {
 
 
         stage('Checkout') {
-            steps {
-                git 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
-            }
-        }
+    steps {
+        git branch: 'main', url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
+    }
+}
+
 
         stage('Build') {
             steps {
