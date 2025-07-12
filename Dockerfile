@@ -1,21 +1,23 @@
-# Use official Go 1.23 image
-FROM golang:1.23.0-alpine
+# Stage 1: Build
+FROM golang:1.20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy module files and download dependencies
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the rest of the code
 COPY . .
 
-# Build the Go application
 RUN go build -o main .
 
-# Expose app port
-EXPOSE 8000
+# Stage 2: Runtime
+FROM alpine:latest
 
-# Run the built binary
+WORKDIR /app
+
+COPY --from=builder /app/main .
+COPY .env .
+
+EXPOSE 8080
+
 CMD ["./main"]
