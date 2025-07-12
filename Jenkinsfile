@@ -2,64 +2,52 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'us-east-1'
-        IMAGE_NAME = 'user-api-devops'
-        ACCOUNT_ID = '248189939111'
-        ECR_REPO = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
-        EC2_HOST = 'ubuntu@54.235.0.39'
-        SSH_KEY = 'ec2-ssh-key' // ID of .pem file in Jenkins credentials
+        GO_VERSION = '1.20'
+        APP_NAME = 'do-host-network-backend'
+        DOCKER_IMAGE = "sagar-rathod/${APP_NAME}:latest"
+    }
+
+    tools {
+        go "${GO_VERSION}"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
+                git 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'go mod tidy'
+                sh 'go build -o main .'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'go test ./...'
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh "docker build -t ${IMAGE_NAME} ."
-            }
-        }
-
-        stage('Login to ECR') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-ecr-creds']]) {
-                    sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                        docker login --username AWS --password-stdin ${ECR_REPO}
-                    """
+                script {
+                    docker.build("${DOCKER_IMAGE}")
                 }
             }
         }
 
-        stage('Tag & Push to ECR') {
-            steps {
-                sh """
-                    docker tag ${IMAGE_NAME}:latest ${ECR_REPO}:latest
-                    docker push ${ECR_REPO}:latest
-                """
+        stage('Docker Push') {
+            when {
+                expression { return env.BRANCH_NAME == 'main' }
             }
-        }
-
-        stage('Deploy on Ubuntu EC2') {
             steps {
-                sshagent (credentials: [SSH_KEY]) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${EC2_HOST} << 'EOF'
-                            sudo apt update -y
-                            sudo apt install -y docker.io awscli
-                            sudo systemctl enable docker
-                            sudo systemctl start docker
-                            aws ecr get-login-password --region ${AWS_REGION} | \
-                            docker login --username AWS --password-stdin ${ECR_REPO}
-                            docker stop ${IMAGE_NAME} || true
-                            docker rm ${IMAGE_NAME} || true
-                            docker pull ${ECR_REPO}:latest
-                            docker run -d --name ${IMAGE_NAME} -p 8000:8000 ${ECR_REPO}:latest
-                        EOF
-                    """
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
@@ -67,10 +55,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Deployment to EC2 on port 8000 completed successfully.'
+            echo "✅ Jenkins pipeline completed successfully."
         }
         failure {
-            echo '❌ Pipeline failed. Check logs.'
+            echo "❌ Pipeline failed."
         }
     }
 }
