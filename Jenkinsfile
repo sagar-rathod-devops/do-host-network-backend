@@ -1,49 +1,31 @@
 pipeline {
     agent any
 
-    stages {
-        stage('Go Version') {
-            steps {
-                sh 'go version'
-            }
-        }
-    }
-
     environment {
         IMAGE_NAME = 'do-host-network-backend'
         IMAGE_TAG = 'latest'
+        CONTAINER_NAME = 'backend-container'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git']]
-                ])
+                git branch: 'main', url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
             }
         }
 
-        stage('Build Go App') {
-            steps {
-                sh 'go version'
-                sh 'go mod tidy'
-                sh 'go build -o main .'
-            }
-        }
-
-        stage('Docker Build') {
+        stage('Build Docker Image') {
             steps {
                 sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
             }
         }
 
-        stage('Docker Run') {
+        stage('Run Docker Container') {
             steps {
                 sh '''
-                    docker stop backend-container || true
-                    docker rm backend-container || true
-                    docker run -d -p 8080:8000 --name backend-container ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+                    docker run -d -p 8080:8000 --name ${CONTAINER_NAME} ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
@@ -51,7 +33,7 @@ pipeline {
 
     post {
         always {
-            echo '✅ Pipeline completed!'
+            echo '✅ Jenkins pipeline execution completed.'
         }
     }
 }
