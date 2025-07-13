@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'golang:1.23-alpine'
+            image 'golang:1.22-alpine'
             args '-v /var/run/docker.sock:/var/run/docker.sock' // Optional: If building Docker inside
         }
     }
@@ -36,7 +36,7 @@ pipeline {
 
         stage('Docker Run') {
             steps {
-                sh 'docker run -d -p 8080:8080 --name backend-container ${IMAGE_NAME}:${IMAGE_TAG}'
+                sh 'docker run -d -p 8080:8000 --name backend-container ${IMAGE_NAME}:${IMAGE_TAG}'
             }
         }
     }
