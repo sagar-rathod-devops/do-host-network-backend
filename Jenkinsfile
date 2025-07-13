@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'golang:1.22-alpine'
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Optional: If building Docker inside
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
@@ -23,6 +23,7 @@ pipeline {
 
         stage('Build Go App') {
             steps {
+                sh 'go version'
                 sh 'go mod tidy'
                 sh 'go build -o main .'
             }
@@ -36,14 +37,18 @@ pipeline {
 
         stage('Docker Run') {
             steps {
-                sh 'docker run -d -p 8080:8000 --name backend-container ${IMAGE_NAME}:${IMAGE_TAG}'
+                sh '''
+                    docker stop backend-container || true
+                    docker rm backend-container || true
+                    docker run -d -p 8080:8000 --name backend-container ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline completed.'
+            echo '✅ Pipeline completed!'
         }
     }
 }
