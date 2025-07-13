@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'golang:1.23-alpine'
+            args '-v /var/run/docker.sock:/var/run/docker.sock' // Optional: If building Docker inside
+        }
+    }
 
     environment {
         IMAGE_NAME = 'do-host-network-backend'
@@ -25,15 +30,13 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                script {
-                    docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
-                }
+                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
             }
         }
 
         stage('Docker Run') {
             steps {
-                sh 'docker run -d -p 8080:8000 --name backend-container do-host-network-backend:latest'
+                sh 'docker run -d -p 8080:8080 --name backend-container ${IMAGE_NAME}:${IMAGE_TAG}'
             }
         }
     }
