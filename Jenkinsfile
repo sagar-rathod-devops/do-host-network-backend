@@ -2,42 +2,42 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = "do-host-network-backend"
-        PORT = "8000"
+        IMAGE_NAME = 'do-host-network'
+        IMAGE_TAG = 'latest'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
+                branch 'main' git 'https://github.com/sagar-rathod-devops/do-host-network-backend.git'
             }
         }
 
-        stage('Build') {
+        stage('Build Go App') {
             steps {
                 sh 'go mod tidy'
-                sh 'go build -o app main.go'
+                sh 'go build -o main .'
             }
         }
 
-        stage('Run App') {
+        stage('Docker Build') {
             steps {
-                // Kill any app already running on port 8000, then run new one
-                sh '''
-                fuser -k ${PORT}/tcp || true
-                nohup ./app > app.log 2>&1 &
-                echo "App is running on port ${PORT}"
-                '''
+                script {
+                    dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
+                }
+            }
+        }
+
+        stage('Docker Run') {
+            steps {
+                sh 'docker run -d -p 8080:8080 --name go-container my-go-app:latest'
             }
         }
     }
 
     post {
-        success {
-            echo "✅ App deployed on EC2 at port ${PORT}"
-        }
-        failure {
-            echo "❌ Pipeline failed"
+        always {
+            echo 'Pipeline execution completed.'
         }
     }
 }
